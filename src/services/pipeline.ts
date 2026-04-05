@@ -53,6 +53,7 @@ async function enrichItemsWithFullText(items: readonly CollectedItem[]): Promise
       const response = await fetch(`https://r.jina.ai/${item.url}`, { headers, signal: AbortSignal.timeout(10_000) })
       if (!response.ok) return item
       const fullText = await response.text()
+
       return fullText ? { ...item, body: fullText } : item
     } catch {
       return item
