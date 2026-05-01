@@ -47,7 +47,7 @@ const mockItem: CollectedItem = {
 
 const mockExtraction: ExtractionResult = {
   pain_points: ['crashes on send'],
-  sentiment: 'negative',
+  sentiment: -0.8,
   category: 'complaint',
   mentioned_tools: [],
   key_quote: 'crashes on send',
@@ -57,7 +57,7 @@ const mockTheme: PainPointTheme = {
   theme: 'crashes on send',
   frequency: 1,
   sources: [CoreSource.hackernews],
-  sentiment: -1,
+  sentiment: -0.8,
   evidence: [
     {
       source: CoreSource.hackernews,
