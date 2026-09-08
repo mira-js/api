@@ -40,6 +40,13 @@ async function collectFromSource(source: string, query: string, depth: ResearchD
 
 async function collectAllItems(sources: string[], query: string, depth: ResearchDepth): Promise<CollectedItem[]> {
   const settled = await Promise.allSettled(sources.map((s) => collectFromSource(s, query, depth)))
+
+  // Collectors may throw (see ADR-014). This is the only layer that catches —
+  // surface the failure instead of letting a rejected source vanish silently.
+  settled.forEach((r, i) => {
+    if (r.status === 'rejected') console.warn(`[pipeline] source "${sources[i]}" failed:`, r.reason)
+  })
+
   return settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
 }
 
