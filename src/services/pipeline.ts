@@ -28,7 +28,7 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
 async function collectFromSource(source: string, query: string, depth: ResearchDepth): Promise<CollectedItem[]> {
   switch (source) {
     case CoreSource.reddit:
-      return collectReddit({ subreddits: ['SaaS', 'startups', 'smallbusiness'], query, limit: depth === 'deep' ? 50 : 25 })
+      return collectReddit({ subreddits: ['SaaS', 'startups', 'smallbusiness'], query, depth })
     case CoreSource.hackernews:
       return collectHackerNews({ query, limit: depth === 'deep' ? 40 : 20, tags: 'story' })
     case CoreSource.news:

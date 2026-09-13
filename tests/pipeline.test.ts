@@ -152,22 +152,25 @@ describe('runPipeline', () => {
     expect(result.ok).toBe(true)
   })
 
-  it('depth: deep calls collectReddit with limit 50 and collectHackerNews with limit 40', async () => {
+  it('depth: deep calls collectReddit with depth deep and collectHackerNews with limit 40', async () => {
     await runPipeline({
       query: 'test',
       depth: 'deep',
       sources: [CoreSource.reddit, CoreSource.hackernews],
     })
 
+    // Reddit caps are computed inside the collector from `depth` — the call
+    // site passes no `limit` (item 27).
     expect(vi.mocked(collectReddit)).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: 50 }),
+      expect.objectContaining({ depth: 'deep' }),
     )
+    expect(vi.mocked(collectReddit).mock.calls[0][0]).not.toHaveProperty('limit')
     expect(vi.mocked(collectHackerNews)).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 40 }),
     )
   })
 
-  it('depth: quick calls collectReddit with limit 25 and collectHackerNews with limit 20', async () => {
+  it('depth: quick calls collectReddit with depth quick and collectHackerNews with limit 20', async () => {
     await runPipeline({
       query: 'test',
       depth: 'quick',
@@ -175,8 +178,9 @@ describe('runPipeline', () => {
     })
 
     expect(vi.mocked(collectReddit)).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: 25 }),
+      expect.objectContaining({ depth: 'quick' }),
     )
+    expect(vi.mocked(collectReddit).mock.calls[0][0]).not.toHaveProperty('limit')
     expect(vi.mocked(collectHackerNews)).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 20 }),
     )
