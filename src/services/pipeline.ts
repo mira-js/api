@@ -8,6 +8,7 @@ import {
   type ResearchResult,
   type Result,
 } from '@mira/shared-core'
+import { logger } from '@mira/shared-core/logger'
 import { openVikingClient } from './openviking.js'
 import { extractItem, aggregateThemes, synthesizeReport } from './analysis.js'
 import { mapWithConcurrency } from './concurrency.js'
@@ -44,7 +45,7 @@ async function collectAllItems(sources: string[], query: string, depth: Research
   // Collectors may throw (see ADR-014). This is the only layer that catches —
   // surface the failure instead of letting a rejected source vanish silently.
   settled.forEach((r, i) => {
-    if (r.status === 'rejected') console.warn(`[pipeline] source "${sources[i]}" failed:`, r.reason)
+    if (r.status === 'rejected') logger.warn('[pipeline] source failed', { source: sources[i], err: r.reason })
   })
 
   return settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))

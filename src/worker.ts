@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq'
 import type { ResearchJobInput, ResearchResult } from '@mira/shared-core'
+import { logger } from '@mira/shared-core/logger'
 import { runPipeline } from './services/pipeline.js'
 import { redisConnection } from './services/redis.js'
 
@@ -15,10 +16,10 @@ export function startWorker(): void {
   )
 
   worker.on('completed', (job) => {
-    console.log(`[worker] job ${job.id} completed`)
+    logger.info('[worker] job completed', { jobId: job.id })
   })
 
   worker.on('failed', (job, err) => {
-    console.error(`[worker] job ${job?.id} failed:`, err.message)
+    logger.error('[worker] job failed', { jobId: job?.id, err })
   })
 }

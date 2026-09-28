@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { Pool } from 'pg'
+import { logger } from '@mira/shared-core/logger'
 
 const MIGRATIONS_DIR = join(__dirname, '../../migrations')
 
@@ -29,19 +30,19 @@ async function migrate(): Promise<void> {
     for (const file of files) {
       if (applied.has(file)) continue
       const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8')
-      console.log(`[migrate] applying ${file}`)
+      logger.info('[migrate] applying', { file })
       await pool.query(sql)
       await pool.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file])
-      console.log(`[migrate] applied ${file}`)
+      logger.info('[migrate] applied', { file })
     }
 
-    console.log('[migrate] done')
+    logger.info('[migrate] done')
   } finally {
     await pool.end()
   }
 }
 
 migrate().catch((err) => {
-  console.error('[migrate] failed:', err)
+  logger.error('[migrate] failed', { err })
   process.exit(1)
 })
