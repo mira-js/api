@@ -57,7 +57,8 @@ async function enrichItemsWithFullText(items: readonly CollectedItem[]): Promise
     if (!item.url) return item
     try {
       const headers: Record<string, string> = { Accept: 'text/markdown', 'X-Return-Format': 'markdown' }
-      if (process.env.JINA_API_KEY) headers['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`
+      const jinaKey = process.env.JINA_API_KEY
+      if (jinaKey) headers['Authorization'] = `Bearer ${jinaKey}`
       const response = await fetch(`https://r.jina.ai/${item.url}`, { headers, signal: AbortSignal.timeout(10_000) })
       if (!response.ok) return item
       const fullText = await response.text()

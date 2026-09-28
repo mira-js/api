@@ -46,7 +46,7 @@ The fastest way to run this is via Docker Compose from the [mira-core root](http
 ```bash
 git clone https://github.com/mira-js/mira-core.git
 cd mira-core
-cp .env.example .env   # set OPENAI_API_KEY at minimum
+cp .env.example .env   # set LLM_API_KEY at minimum
 docker compose up
 ```
 
@@ -65,9 +65,9 @@ pnpm --filter @mira/api-core start
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `OPENAI_API_KEY` | Yes | — | LLM provider API key |
-| `OPENAI_BASE_URL` | No | DeepSeek | Any OpenAI-compatible base URL |
-| `OPENAI_MODEL` | No | `deepseek-chat` | Model to use for extraction and synthesis |
+| `LLM_API_KEY` | Yes | — | LLM provider API key |
+| `LLM_BASE_URL` | No | DeepSeek | Any OpenAI-compatible base URL |
+| `LLM_MODEL` | No | `deepseek-flash` | Model to use for extraction and synthesis |
 | `DATABASE_URL` | Yes | — | PostgreSQL connection string |
 | `REDIS_URL` | Yes | — | Redis connection string |
 | `PORT` | No | `3000` | HTTP listen port |
@@ -193,10 +193,10 @@ MIRA_PROMPTS_DIR=/path/to/my-prompts
 
 The pipeline uses the OpenAI SDK with a configurable base URL, so it works with any provider that implements the OpenAI chat completions API:
 
-| Provider | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
+| Provider | `LLM_BASE_URL` | `LLM_MODEL` |
 |----------|-------------------|----------------|
-| DeepSeek (default, cheapest) | `https://api.deepseek.com` | `deepseek-chat` |
-| OpenAI | *(omit)* | `gpt-4o-mini` |
+| DeepSeek (default, cheapest) | `https://api.deepseek.com` | `deepseek-flash` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
 | Ollama (local) | `http://localhost:11434/v1` | `llama3.2` |
 
