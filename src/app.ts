@@ -11,10 +11,11 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('*', logger())
 }
 
-app.use('*', cors({
-  origin: process.env.DASHBOARD_URL || 'http://localhost:5173',
-  credentials: true,
-}))
+const corsOrigin = process.env.CORS_ORIGIN
+
+if (corsOrigin) {
+  app.use('*', cors({ origin: corsOrigin, credentials: true }))
+}
 
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }))
 

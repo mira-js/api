@@ -39,21 +39,13 @@ GET /api/v1/research/:jobId  → ResearchResult
 
 ---
 
-## Quickstart
+## Running it
 
-The fastest way to run this is via Docker Compose from the [mira-core root](https://github.com/mira-js/mira-core):
+The API needs Postgres, Redis, and an `LLM_API_KEY`. A one-command self-host bundle is not published yet; follow [github.com/mira-js](https://github.com/mira-js) for updates.
 
-```bash
-git clone https://github.com/mira-js/mira-core.git
-cd mira-core
-cp .env.example .env   # set LLM_API_KEY at minimum
-docker compose up
-```
-
-For local development without Docker:
+These commands run from inside the Mira core pnpm workspace, not from a standalone clone of this repo: the package depends on its sibling packages via `workspace:*`.
 
 ```bash
-# From mira-core root
 pnpm install && pnpm build
 pnpm --filter @mira/api-core migrate
 pnpm --filter @mira/api-core start
@@ -71,7 +63,7 @@ pnpm --filter @mira/api-core start
 | `DATABASE_URL` | Yes | — | PostgreSQL connection string |
 | `REDIS_URL` | Yes | — | Redis connection string |
 | `PORT` | No | `3000` | HTTP listen port |
-| `DASHBOARD_URL` | No | `http://localhost:5173` | CORS allowed origin |
+| `CORS_ORIGIN` | No | unset (CORS off) | Browser origin allowed to call the API with credentials |
 | `REDDIT_CLIENT_ID` | No | — | Reddit OAuth (improves rate limits) |
 | `REDDIT_CLIENT_SECRET` | No | — | Reddit OAuth |
 | `REDDIT_USERNAME` | No | — | Reddit OAuth |
