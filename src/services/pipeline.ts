@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { collectReddit, collectHackerNews, collectNewsRSS } from '@mira/core-collectors'
 import {
   CoreSource,

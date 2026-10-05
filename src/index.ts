@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { logger } from '@mira/shared-core/logger'

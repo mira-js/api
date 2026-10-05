@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Worker } from 'bullmq'
 import type { ResearchJobInput, ResearchResult } from '@mira/shared-core'
 import { logger } from '@mira/shared-core/logger'

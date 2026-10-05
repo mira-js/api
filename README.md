@@ -1,7 +1,7 @@
 # @mira/api-core
 
 [![npm](https://img.shields.io/npm/v/@mira/api-core)](https://www.npmjs.com/package/@mira/api-core)
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](https://github.com/mira-js/mira-core/blob/main/LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](./LICENSE)
 
 The MIRA research API. A Hono HTTP server backed by a BullMQ async worker that runs the full collection → extraction → clustering → synthesis pipeline. Self-host it; query it from anywhere.
 
@@ -209,3 +209,11 @@ A single PostgreSQL table (`research_jobs`) stores job metadata. Run the migrati
 ```bash
 pnpm --filter @mira/api-core migrate
 ```
+
+---
+
+## License
+
+AGPL-3.0-only — see [LICENSE](./LICENSE).
+
+Copyright (C) 2026 Fernando Nieto Pallares
