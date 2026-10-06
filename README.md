@@ -1,216 +1,140 @@
-# @mira/api-core
+<div align="center">
 
-[![npm](https://img.shields.io/npm/v/@mira/api-core)](https://www.npmjs.com/package/@mira/api-core)
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](./LICENSE)
+# `@mira/api-core`
 
-The MIRA research API. A Hono HTTP server backed by a BullMQ async worker that runs the full collection → extraction → clustering → synthesis pipeline. Self-host it; query it from anywhere.
+**Query in. Themes out.**
 
----
+A minimal Hono server with an in-process worker that runs Mira's research pipeline.
 
-## What happens when you submit a query
+[![npm](https://img.shields.io/npm/v/@mira/api-core?style=flat-square&color=818cf8&labelColor=0e1320)](https://www.npmjs.com/package/@mira/api-core)
+[![license](https://img.shields.io/badge/license-AGPL--3.0-818cf8?style=flat-square&labelColor=0e1320)](./LICENSE)
 
-```
-POST /api/v1/research  { query, depth?, sources? }
-         │
-         ▼
-   BullMQ job enqueued (Redis)
-         │
-         ▼  Worker picks up the job
-   ┌─────┴──────────────────────────────────────────────┐
-   │  1. Collectors run in parallel                     │
-   │     Reddit · HackerNews · RSS                      │
-   │                                                    │
-   │  2. Each item ingested into OpenViking (optional)  │
-   │                                                    │
-   │  3. LLM extraction per item (concurrent)           │
-   │     → pain_points, sentiment, category, key_quote  │
-   │                                                    │
-   │  4. Embedding-based theme clustering               │
-   │     → groups items by semantic similarity          │
-   │                                                    │
-   │  5. Final synthesis report (LLM)                   │
-   │     → summary, painPoints, competitorWeaknesses,   │
-   │       emergingGaps                                 │
-   └────────────────────────────────────────────────────┘
-         │
-         ▼
-GET /api/v1/research/:jobId  → ResearchResult
-```
+</div>
 
----
+<br>
 
-## Running it
+Submit a research query. The server queues it, collects discussion from Reddit, Hacker News and RSS, extracts pain points with an LLM, clusters them into themes and writes a summary. Read the result back over HTTP.
 
-The API needs Postgres, Redis, and an `LLM_API_KEY`. A one-command self-host bundle is not published yet; follow [github.com/mira-js](https://github.com/mira-js) for updates.
+## Run it
 
-These commands run from inside the Mira core pnpm workspace, not from a standalone clone of this repo: the package depends on its sibling packages via `workspace:*`.
+**You need** Redis · an LLM API key · your own prompts directory. Postgres only for `migrate`.
 
-```bash
+```sh
 pnpm install && pnpm build
 pnpm --filter @mira/api-core migrate
 pnpm --filter @mira/api-core start
 ```
 
----
+> [!IMPORTANT]
+> No prompt files ship in any public Mira repository. Set `MIRA_PROMPTS_DIR` to a directory with `extract_pain_points.txt` and `synthesize_report.txt` before starting.
 
-## Environment variables
+> [!CAUTION]
+> No authentication, no rate limiting. Put it behind your own gateway if anyone you don't trust can reach it.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `LLM_API_KEY` | Yes | — | LLM provider API key |
-| `LLM_BASE_URL` | No | DeepSeek | Any OpenAI-compatible base URL |
-| `LLM_MODEL` | No | `deepseek-flash` | Model to use for extraction and synthesis |
-| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
-| `REDIS_URL` | Yes | — | Redis connection string |
-| `PORT` | No | `3000` | HTTP listen port |
-| `CORS_ORIGIN` | No | unset (CORS off) | Browser origin allowed to call the API with credentials |
-| `REDDIT_CLIENT_ID` | No | — | Reddit OAuth (improves rate limits) |
-| `REDDIT_CLIENT_SECRET` | No | — | Reddit OAuth |
-| `REDDIT_USERNAME` | No | — | Reddit OAuth |
-| `REDDIT_PASSWORD` | No | — | Reddit OAuth |
-| `JINA_API_KEY` | No | — | Enables full-text article extraction |
-| `MIRA_ENABLE_FULLTEXT` | No | `false` | Set `true` to fetch article bodies via Jina |
-| `MIRA_EXTRACTION_CONCURRENCY` | No | `5` | Parallel LLM calls during extraction phase |
-| `MIRA_OPENVIKING_INGEST_CONCURRENCY` | No | `10` | Parallel writes to OpenViking |
-| `MIRA_PROMPTS_DIR` | No | `./prompts` | Directory for custom prompt overrides |
-| `OPENVIKING_URL` | No | — | OpenViking base URL (semantic search, optional) |
-| `OPENVIKING_API_KEY` | No | — | OpenViking API key (optional) |
+## Ask
 
----
+```sh
+curl -X POST localhost:3000/api/v1/research \
+  -H 'content-type: application/json' \
+  -d '{"query":"invoicing software","depth":"quick"}'
+# → 202 { "jobId": "1", "status": "queued" }
 
-## REST API
-
-### `POST /api/v1/research`
-
-Enqueue a new research job.
-
-**Request body:**
-
-```ts
-{
-  query: string                        // required
-  depth?: "quick" | "deep"             // default: "quick"
-  sources?: string[]                   // default: ["reddit","hackernews","news"]
-}
+curl localhost:3000/api/v1/research/1
 ```
 
-**Response `202 Accepted`:**
+| Route | Does |
+|:--|:--|
+| `POST /api/v1/research` | Queue a job — `{ query, sources?, depth? }` → `202` |
+| `GET /api/v1/research/:jobId` | Read a job and its result |
+| `GET /api/v1/research` | List jobs |
+| `GET /health` | Liveness |
 
-```json
-{ "jobId": "abc123", "status": "queued" }
+`400` for a bad body · `404` for an unknown job · `503` when the queue is down.
+
+## What happens to your query
+
+```mermaid
+flowchart TD
+  q(["query · sources · depth"]) --> c["Collect<br/><sub>failed sources are dropped</sub>"]
+  c --> f["Full text<br/><sub>deep only, opt-in</sub>"]
+  f --> o["OpenViking ingest<br/><sub>fire-and-forget</sub>"]
+  o --> e["Extract pain points<br/><sub>failed items are dropped</sub>"]
+  e --> b["Bucket by category"]
+  b --> t["Cluster into themes"]
+  t --> s["Synthesize report"]
+  s --> r(["ResearchResult"])
+  classDef step fill:#0e1320,stroke:#2a3250,color:#c7cbe0
+  classDef io fill:#818cf8,stroke:#a5b4fc,color:#0a0d1a
+  class c,f,o,e,b,t,s step
+  class q,r io
 ```
 
-**Depth behaviour:**
+Results land in three buckets: **pain points**, **competitor weaknesses** and **emerging gaps**. A failing source never fails the job; a failing report does, and the job is retried.
 
-| `depth` | Reddit limit | HN limit | Notes |
-|---------|:---:|:---:|-------|
-| `quick` | 25/subreddit | 20 | Fast, ~30–60 s total |
-| `deep` | 50/subreddit | 40 | More coverage, ~60–120 s |
+## Two depths
 
----
+| | `quick` | `deep` |
+|:--|:--|:--|
+| Volume | Smaller, lower spend cap | Larger, higher spend cap |
+| Clustering | String dedup, no embeddings | Jina embeddings |
+| Full text | — | Opt-in with `MIRA_ENABLE_FULLTEXT=true` |
 
-### `GET /api/v1/research/:jobId`
+## Where it sits
 
-Poll for job status and results.
-
-**Response:**
-
-```ts
-{
-  jobId: string
-  status: "queued" | "active" | "completed" | "failed"
-  progress?: number       // 0–100, present while active
-  createdAt: string       // ISO 8601
-  result?: ResearchResult // present when status === "completed"
-}
+```mermaid
+flowchart LR
+  cli["cli"] -- HTTP --> api["api-core"]
+  cli -. types .-> shared["shared-core"]
+  api --> services["core-services"]
+  api --> collectors["core-collectors"]
+  services --> shared
+  collectors --> shared
+  classDef here fill:#818cf8,stroke:#a5b4fc,color:#0a0d1a
+  classDef pkg fill:#0e1320,stroke:#2a3250,color:#c7cbe0
+  class api here
+  class cli,services,shared,collectors pkg
 ```
 
-**ResearchResult shape:**
+<details>
+<summary><b>Configuration</b></summary>
 
-```ts
-{
-  query: string
-  summary: string
-  painPoints: PainPointTheme[]
-  competitorWeaknesses: PainPointTheme[]
-  emergingGaps: PainPointTheme[]
-  rawItems: CollectedItem[]
-}
+<br>
 
-// PainPointTheme
-{
-  theme: string
-  frequency: number
-  sources: string[]
-  sentiment: number       // -1.0 to 1.0
-  evidence: { source: string; url: string; excerpt: string }[]
-}
-```
+| Variable | For |
+|:--|:--|
+| `LLM_API_KEY` · `LLM_BASE_URL` · `LLM_MODEL` | Any OpenAI-compatible endpoint |
+| `LLM_DISABLE_THINKING` | Force thinking mode on or off |
+| `REDIS_URL` | Job queue |
+| `DATABASE_URL` | `migrate` |
+| `PORT` · `CORS_ORIGIN` | HTTP server |
+| `APIFY_API_TOKEN` | The `reddit` source |
+| `JINA_API_KEY` | Deep-mode clustering, optional full text |
+| `MIRA_ENABLE_FULLTEXT` · `MIA_ENABLE_FULLTEXT` | Pipeline full text · collector RSS full text |
+| `MIRA_FULLTEXT_CONCURRENCY` · `MIRA_EXTRACTION_CONCURRENCY` · `MIRA_OPENVIKING_INGEST_CONCURRENCY` | Throughput |
+| `OPENVIKING_URL` · `OPENVIKING_API_KEY` | Memory store |
+| `MIRA_PROMPTS_DIR` | Your prompt files |
+| `MIRA_DEBUG_LOGGING` | Debug logs |
 
----
+</details>
 
-### `GET /api/v1/research`
+<details>
+<summary><b>Workspace layout</b></summary>
 
-List recent jobs (latest first).
+<br>
 
----
+No public self-host bundle exists yet. Build in a pnpm workspace with `shared`, `core-services` and `core-collectors` cloned next to this repository.
 
-### `GET /health`
+</details>
 
-```json
-{ "status": "ok", "timestamp": "2024-01-01T00:00:00.000Z" }
-```
+<br>
 
----
-
-## Custom prompts
-
-Three prompt templates drive the LLM pipeline:
-
-| File | Phase |
-|------|-------|
-| `prompts/categorize_content.txt` | First-pass relevance classification |
-| `prompts/extract_pain_points.txt` | Structured per-item extraction |
-| `prompts/synthesize_report.txt` | Final cross-item synthesis |
-
-Override any or all by setting `MIRA_PROMPTS_DIR` to your own directory. Missing files fall back to the bundled defaults — only ship the files you want to change.
-
-```bash
-MIRA_PROMPTS_DIR=/path/to/my-prompts
-```
-
----
-
-## LLM compatibility
-
-The pipeline uses the OpenAI SDK with a configurable base URL, so it works with any provider that implements the OpenAI chat completions API:
-
-| Provider | `LLM_BASE_URL` | `LLM_MODEL` |
-|----------|-------------------|----------------|
-| DeepSeek (default, cheapest) | `https://api.deepseek.com` | `deepseek-flash` |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
-| Ollama (local) | `http://localhost:11434/v1` | `llama3.2` |
-
----
-
-## Database
-
-A single PostgreSQL table (`research_jobs`) stores job metadata. Run the migration before first start:
-
-```bash
-pnpm --filter @mira/api-core migrate
-```
-
----
-
-## Security
-
-For details on reporting security vulnerabilities, see [SECURITY.md](https://github.com/mira-js/.github/blob/main/SECURITY.md) in the mira-js org repository, or use [private vulnerability reporting](https://github.com/mira-js/api/security/advisories/new) on this repository.
-
-## License
-
-AGPL-3.0-only — see [LICENSE](./LICENSE).
-Contributions require signing the [CLA](https://github.com/mira-js/.github/blob/main/CLA.md) — see [CONTRIBUTING.md](https://github.com/mira-js/.github/blob/main/CONTRIBUTING.md).
-
+<div align="center">
+<sub>
+Part of <a href="https://github.com/mira-js">Mira's open core</a> ·
+<a href="./LICENSE">AGPL-3.0-only</a> ·
+<a href="https://github.com/mira-js/.github/blob/main/CONTRIBUTING.md">Contributing</a> (<a href="https://github.com/mira-js/.github/blob/main/CLA.md">CLA</a>) ·
+<a href="https://github.com/mira-js/api/security/advisories/new">Report a vulnerability</a>
+<br>
 Copyright (C) 2026 Fernando Nieto Pallares
+</sub>
+</div>
