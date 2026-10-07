@@ -26,7 +26,7 @@ pnpm --filter @mira/api-core start
 ```
 
 > [!IMPORTANT]
-> No prompt files ship in any public Mira repository. Set `MIRA_PROMPTS_DIR` to a directory with `extract_pain_points.txt` and `synthesize_report.txt` before starting.
+> The analysis prompts do not ship in any public Mira repository. Set `MIRA_PROMPTS_DIR` to a directory with `extract_pain_points.txt` and `synthesize_report.txt` before starting. The one exception is `theme_label.txt`: a default ships bundled in `mira-core/prompts/` and is used when the file is absent from that directory.
 
 > [!CAUTION]
 > No authentication, no rate limiting. Put it behind your own gateway if anyone you don't trust can reach it.
