@@ -1,14 +1,19 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "dist",
     "rootDir": "src",
     "composite": true
   },
-  "references": [
-    { "path": "../shared-core" },
-    { "path": "../core-collectors" },
-    { "path": "../core-services" }
-  ],
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

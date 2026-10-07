@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
 import { logger } from '@mira/shared-core/logger'
 
-const MIGRATIONS_DIR = join(__dirname, '../../migrations')
+const MIGRATIONS_DIR = fileURLToPath(new URL('../../migrations', import.meta.url))
 
 async function migrate(): Promise<void> {
   const connectionString = process.env.DATABASE_URL
